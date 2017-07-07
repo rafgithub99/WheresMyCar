@@ -72,7 +72,7 @@ public class CurrentLocationActivity extends FragmentActivity implements OnMapRe
                 else{
                     Toast.makeText(this,"Permission Denied!",Toast.LENGTH_LONG).show();
                 }
-                return;
+                //return;
         }
     }
 
@@ -112,7 +112,7 @@ public class CurrentLocationActivity extends FragmentActivity implements OnMapRe
         if(currentLocationMarker != null){
             currentLocationMarker.remove();
         }
-        LatLng latLng = new LatLng(location.getLatitude(),location.getLongitude());
+        LatLng latLng = new LatLng(lastLocation.getLatitude(),lastLocation.getLongitude());
 
         MarkerOptions markerOptions = new MarkerOptions();//set properties to marker
         markerOptions.position(latLng);
