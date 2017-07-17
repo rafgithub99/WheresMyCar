@@ -2,6 +2,8 @@ package com.example.admin.wheresmycar;
 
 import android.Manifest;
 import android.content.pm.PackageManager;
+import android.location.Address;
+import android.location.Geocoder;
 import android.location.Location;
 
 import android.os.Build;
@@ -11,6 +13,8 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
 import android.support.v4.content.ContextCompat;
+import android.view.View;
+import android.widget.EditText;
 import android.widget.Toast;
 
 import com.google.android.gms.location.LocationListener;
@@ -27,6 +31,9 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
+import java.io.IOException;
+import java.util.List;
+
 public class CurrentLocationActivity extends FragmentActivity implements OnMapReadyCallback,
         GoogleApiClient.ConnectionCallbacks,
         GoogleApiClient.OnConnectionFailedListener,
@@ -37,6 +44,8 @@ public class CurrentLocationActivity extends FragmentActivity implements OnMapRe
     private LocationRequest locationRequest;
     private Location lastLocation;
     private Marker currentLocationMarker;
+    private Marker savedLocationMarker;
+    private Marker searchLocationMarker;
     public static final int REQUEST_LOCATION_CODE = 99;
 
     @Override
@@ -52,6 +61,16 @@ public class CurrentLocationActivity extends FragmentActivity implements OnMapRe
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
+    }
+
+    public synchronized void buildGoogleApiClient(){
+        client = new GoogleApiClient.Builder(this)
+                .addConnectionCallbacks(this)
+                .addOnConnectionFailedListener(this)
+                .addApi(LocationServices.API)
+                .build();
+
+        client.connect();
     }
 
     @Override
@@ -96,16 +115,6 @@ public class CurrentLocationActivity extends FragmentActivity implements OnMapRe
         }
     }
 
-    public synchronized void buildGoogleApiClient(){
-        client = new GoogleApiClient.Builder(this)
-                .addConnectionCallbacks(this)
-                .addOnConnectionFailedListener(this)
-                .addApi(LocationServices.API)
-                .build();
-
-        client.connect();
-    }
-
     @Override
     public void onLocationChanged(Location location) {
         lastLocation = location;
@@ -117,15 +126,67 @@ public class CurrentLocationActivity extends FragmentActivity implements OnMapRe
         MarkerOptions markerOptions = new MarkerOptions();//set properties to marker
         markerOptions.position(latLng);
         markerOptions.title("You Are Here");
-        markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN));
+        markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_VIOLET));
 
         currentLocationMarker = mMap.addMarker(markerOptions);//insert marker options to map
 
         mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
-        mMap.animateCamera(CameraUpdateFactory.zoomBy(10));
+        //mMap.animateCamera(CameraUpdateFactory.zoomBy(10));
 
-        if(client != null){
+        /*if(client != null){
             LocationServices.FusedLocationApi.removeLocationUpdates(client, this);
+        }*/
+    }
+
+    public void onClick(View view){
+        if(view.getId()== R.id.save_button){
+            Location location = lastLocation;
+            if(location != null|!location.equals("")){
+                LatLng latLng = new LatLng(location.getLatitude(),location.getLongitude());
+
+                if(savedLocationMarker!=null){
+                    savedLocationMarker.remove();
+                }
+                MarkerOptions markerOptions = new MarkerOptions();//set properties to marker
+                markerOptions.position(latLng);
+                markerOptions.title("Position Saved");
+                markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN));
+
+                savedLocationMarker = mMap.addMarker(markerOptions);//insert marker options to map
+
+                mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
+                mMap.animateCamera(CameraUpdateFactory.zoomBy(10));
+            }
+
+        }
+    }
+
+    public void onClickSearch(View view){
+        if(view.getId() == R.id.search_button){
+            EditText locationTextField = (EditText) findViewById(R.id.location_text_field);
+            String location = locationTextField.toString();
+            List<Address> addressList = null;
+            MarkerOptions mo = new MarkerOptions();
+
+            if(!location.equals("")){
+                Geocoder geocoder = new Geocoder(this);
+                try {
+                    addressList = geocoder.getFromLocationName(location,5);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+                for(int i = 0; i<addressList.size(); i++){
+                    Address myAddress = addressList.get(i);
+                    LatLng latLng = new LatLng(myAddress.getLatitude(), myAddress.getLongitude());
+                    mo.position(latLng);
+                    mo.title("Search Result");
+
+                    searchLocationMarker = mMap.addMarker(mo);
+                    mMap.animateCamera(CameraUpdateFactory.newLatLng(latLng));
+                    mMap.animateCamera(CameraUpdateFactory.zoomBy(10));
+                }
+            }
         }
     }
 
@@ -133,9 +194,9 @@ public class CurrentLocationActivity extends FragmentActivity implements OnMapRe
     public void onConnected(@Nullable Bundle bundle) {
         locationRequest = new LocationRequest();
 
-        locationRequest.setInterval(1000);
-        locationRequest.setFastestInterval(1000);
-        locationRequest.setPriority(LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY);
+        locationRequest.setInterval(500);
+        locationRequest.setFastestInterval(500);
+        locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
 
         if(ContextCompat.checkSelfPermission(this,Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED){
             LocationServices.FusedLocationApi.requestLocationUpdates(client,locationRequest,this);

@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">WheresMyCar</string>
+    <string name="title_activity_current_location">Wheres My Car?</string>
+    <string name="save_location">Save Current Location</string>
+    <string name="search_location">Search</string>
+    <string name="search_hint">Type in a place</string>
+</resources>
